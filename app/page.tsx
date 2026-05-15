@@ -16,6 +16,12 @@ export default function Home() {
         <Converter />
         
       </main>
+
+      <footer className="py-8 border-t border-slate-800 text-center">
+        <p className="text-slate-500 text-sm">
+          Built for <a href="https://webpconvertor.webdesignsutra.com" className="text-indigo-400 hover:text-indigo-300 transition-colors">WebP Converter</a> by <a href="https://webdesignsutra.com" className="text-indigo-400 hover:text-indigo-300 transition-colors">Web Design Sutra</a>
+        </p>
+      </footer>
     </div>
   );
 }
