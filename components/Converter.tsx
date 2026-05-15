@@ -278,15 +278,15 @@ export default function Converter() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 h-full">
-      {/* Left Column: Headline + Dropzone + Features */}
-      <div className="lg:col-span-8 flex flex-col gap-8 overflow-y-auto pr-4 custom-scrollbar">
-        <div className="space-y-4 text-center lg:text-left">
-          <h1 className="text-5xl md:text-6xl font-black tracking-tight text-white leading-[1.1]">
-            Convert Images to <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">WebP</span> in Seconds
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 h-full overflow-hidden">
+      {/* Left Column: Headline + Dropzone + Queue */}
+      <div className="lg:col-span-8 flex flex-col gap-6 h-full min-h-0">
+        <div className="space-y-4 flex-shrink-0">
+          <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white leading-tight">
+            Convert Images to <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">WebP</span>
           </h1>
-          <p className="text-lg text-slate-300 max-w-2xl">
-            Convert your PNG and JPG images to WebP format instantly. Free, secure, and blazing fast.
+          <p className="text-base text-slate-300">
+            Professional bulk image converter. Fast, secure, and local.
           </p>
         </div>
 
@@ -298,223 +298,216 @@ export default function Converter() {
           onDrop={handleDrop}
         >
           <div className={`absolute -inset-1 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-[2.5rem] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${isDragging ? 'opacity-100' : ''}`} />
-          <div className={`relative glass-card border-2 border-dashed p-12 flex flex-col items-center justify-center text-center cursor-pointer overflow-hidden ${isDragging ? 'border-indigo-500 bg-indigo-500/5' : 'border-white/10 hover:border-indigo-500/50'}`}>
+          <div className={`relative glass-card border-2 border-dashed p-8 flex flex-col items-center justify-center text-center cursor-pointer overflow-hidden ${isDragging ? 'border-indigo-500 bg-indigo-500/5' : 'border-white/10 hover:border-indigo-500/50'}`}>
             <div 
               className="absolute inset-0 z-0" 
               onClick={() => !isConverting && fileInputRef.current?.click()} 
             />
             
-            <div className="relative z-10 flex flex-col items-center">
-              <div className="w-20 h-20 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-full flex items-center justify-center mb-6 shadow-2xl shadow-indigo-500/40">
-                <CloudUpload className="w-10 h-10 text-white" />
+            <div className="relative z-10 flex items-center gap-6 w-full max-w-2xl px-4">
+              <div className="w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-500/30 flex-shrink-0">
+                <CloudUpload className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-2">Drag & drop your images here</h3>
-              <p className="text-sm text-slate-400 mb-8">Supports PNG, JPG, JPEG (Max 50MB per file)</p>
               
-              <div className="flex items-center gap-6 w-full max-w-md">
+              <div className="text-left flex-1">
+                <h3 className="text-xl font-bold text-white">Upload your images</h3>
+                <p className="text-xs text-slate-400">Drag files here or choose from your computer</p>
+              </div>
+
+              <div className="flex items-center gap-3">
                 <button 
                   onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-                  className="flex-1 flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-2xl shadow-lg shadow-indigo-500/20 transition-all active:scale-95"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold rounded-xl transition-all active:scale-95"
                 >
-                  <FileIcon className="w-5 h-5" />
-                  Choose Files
+                  <FileIcon className="w-3.5 h-3.5 text-indigo-400" />
+                  Add Files
                 </button>
-                
-                <span className="text-slate-600 font-bold uppercase tracking-widest text-xs">or</span>
-                
                 <button 
                   onClick={(e) => { e.stopPropagation(); folderInputRef.current?.click(); }}
-                  className="flex-1 flex items-center justify-center gap-2 px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-2xl transition-all active:scale-95"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold rounded-xl transition-all active:scale-95"
                 >
-                  <Folder className="w-5 h-5 text-indigo-400" />
-                  Choose Folder
+                  <Folder className="w-3.5 h-3.5 text-indigo-400" />
+                  Add Folder
                 </button>
               </div>
             </div>
 
-            <input 
-              ref={fileInputRef}
-              type="file" 
-              multiple 
-              accept="image/*" 
-              onChange={handleFileInput}
-              className="hidden"
-            />
-            <input 
-              ref={folderInputRef}
-              type="file" 
-              // @ts-ignore
-              webkitdirectory="" 
-              directory="" 
-              onChange={handleFileInput}
-              className="hidden"
-            />
+            <input ref={fileInputRef} type="file" multiple accept="image/*" onChange={handleFileInput} className="hidden" />
+            <input ref={folderInputRef} type="file" // @ts-ignore
+              webkitdirectory="" directory="" onChange={handleFileInput} className="hidden" />
           </div>
         </div>
 
         {/* File List / Queue */}
-        <AnimatePresence>
-          {files.length > 0 && (
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="glass-card p-6 border-white/5 flex-1 min-h-[200px] flex flex-col overflow-hidden"
-            >
-              <div className="flex items-center justify-between mb-4 flex-shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                  <span className="text-xs font-bold uppercase tracking-widest text-slate-400">
-                    Queue ({files.length} images)
-                  </span>
+        <div className="flex-1 min-h-0 flex flex-col relative">
+          <AnimatePresence mode="wait">
+            {files.length > 0 ? (
+              <motion.div 
+                key="queue"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                className="glass-card p-6 border-white/5 flex-1 flex flex-col overflow-hidden bg-slate-900/40"
+              >
+                <div className="flex items-center justify-between mb-6 flex-shrink-0">
+                  <div className="flex items-center gap-4">
+                    <div className="px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-lg">
+                      <span className="text-[10px] font-black uppercase tracking-[0.1em] text-indigo-400">
+                        Conversion Queue: {files.length}
+                      </span>
+                    </div>
+                    
+                    {files.some(f => f.status === 'done') && (
+                      <div className="px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+                        <span className="text-[10px] font-bold text-green-400 uppercase tracking-wider">
+                          Saved: {(() => {
+                            const original = files.filter(f => f.status === 'done').reduce((acc, f) => acc + f.file.size, 0);
+                            const result = files.filter(f => f.status === 'done').reduce((acc, f) => acc + (f.resultBlob?.size || 0), 0);
+                            const saved = original - result;
+                            return (saved / 1024 / 1024).toFixed(2) + ' MB';
+                          })()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <button 
+                    onClick={clearAll}
+                    className="flex items-center gap-2 px-3 py-1.5 hover:bg-red-500/10 rounded-lg text-slate-500 hover:text-red-400 transition-all text-[10px] font-bold uppercase tracking-widest"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    Reset
+                  </button>
                 </div>
-                
-                {files.some(f => f.status === 'done') && (
-                  <div className="px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                    <span className="text-[10px] font-bold text-green-400 uppercase tracking-wider">
-                      Total Saved: {(() => {
-                        const original = files.filter(f => f.status === 'done').reduce((acc, f) => acc + f.file.size, 0);
-                        const result = files.filter(f => f.status === 'done').reduce((acc, f) => acc + (f.resultBlob?.size || 0), 0);
-                        const saved = original - result;
-                        return (saved / 1024 / 1024).toFixed(2) + ' MB';
-                      })()}
-                    </span>
+
+                {/* Global Progress Bar */}
+                {isConverting && (
+                  <div className="mb-6 space-y-2 flex-shrink-0">
+                    <div className="flex justify-between items-center text-[10px] font-black text-indigo-400 uppercase tracking-[0.1em]">
+                      <span>Batch Progress</span>
+                      <span>{Math.round((files.filter(f => f.status === 'done').length / files.length) * 100)}%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                      <motion.div 
+                        className="h-full bg-gradient-to-r from-indigo-500 to-purple-500"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(files.filter(f => f.status === 'done').length / files.length) * 100}%` }}
+                        transition={{ type: "spring", bounce: 0, duration: 0.5 }}
+                      />
+                    </div>
                   </div>
                 )}
 
-                <button 
-                  onClick={clearAll}
-                  className="text-xs font-bold text-slate-500 hover:text-red-400 transition-colors uppercase tracking-widest"
-                >
-                  Clear All
-                </button>
-              </div>
-
-              {/* Global Progress Bar */}
-              {isConverting && (
-                <div className="mb-4 space-y-2">
-                  <div className="flex justify-between items-center text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
-                    <span>Converting Batch...</span>
-                    <span>{Math.round((files.filter(f => f.status === 'done').length / files.length) * 100)}%</span>
-                  </div>
-                  <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                <div className="space-y-2 overflow-y-auto pr-4 custom-scrollbar flex-1 -mr-2">
+                  {files.map((item, index) => (
                     <motion.div 
-                      className="h-full bg-indigo-500"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${(files.filter(f => f.status === 'done').length / files.length) * 100}%` }}
-                    />
+                      layout
+                      key={item.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="flex items-center justify-between p-4 bg-white/[0.03] rounded-2xl border border-white/5 group hover:bg-white/[0.06] hover:border-white/10 transition-all"
+                    >
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-slate-800 border border-white/10 flex-shrink-0 shadow-lg">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={item.previewUrl} alt="" className="w-full h-full object-cover" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-white truncate max-w-[250px]">{item.file.name}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[10px] font-medium text-slate-500">{(item.file.size / 1024).toFixed(0)} KB</span>
+                            {item.status === 'done' && item.resultBlob && (
+                              <>
+                                <div className="w-1 h-1 rounded-full bg-slate-700" />
+                                <span className="text-[10px] text-green-400 font-bold">{(item.resultBlob.size / 1024).toFixed(0)} KB</span>
+                                <span className="text-[9px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded-md font-black ring-1 ring-inset ring-green-500/20">
+                                  -{Math.round((1 - (item.resultBlob.size / item.file.size)) * 100)}%
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-6">
+                        {item.status === 'processing' && (
+                          <div className="flex items-center gap-2 text-indigo-400 bg-indigo-400/5 px-2.5 py-1.5 rounded-lg border border-indigo-400/10">
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span className="text-[9px] font-black uppercase tracking-widest">Active</span>
+                          </div>
+                        )}
+                        
+                        {item.status === 'done' && (
+                          <div className="flex items-center gap-2 text-green-400 bg-green-400/5 px-2.5 py-1.5 rounded-lg border border-green-400/10">
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            <span className="text-[9px] font-black uppercase tracking-widest">Success</span>
+                          </div>
+                        )}
+                        
+                        <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {item.status === 'done' && (
+                            <button onClick={() => downloadFile(item, index)} className="p-2 hover:bg-indigo-500/10 rounded-lg text-slate-400 hover:text-indigo-400 transition-colors">
+                              <Download className="w-4 h-4" />
+                            </button>
+                          )}
+                          <button onClick={() => removeFile(item.id)} className="p-2 hover:bg-red-500/10 rounded-lg text-slate-400 hover:text-red-400 transition-colors">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="empty"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="grid grid-cols-1 md:grid-cols-3 gap-6"
+              >
+                <div className="glass-card p-8 flex flex-col items-center text-center gap-5 border-white/5">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center">
+                    <Zap className="w-6 h-6 text-indigo-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold mb-2">Blazing Fast</h3>
+                    <p className="text-slate-400 text-xs leading-relaxed">Hardware-accelerated local conversion engine.</p>
                   </div>
                 </div>
-              )}
-
-              <div className="space-y-2 overflow-y-auto pr-2 custom-scrollbar flex-1">
-                {files.map((item, index) => (
-                  <motion.div 
-                    layout
-                    key={item.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5 group hover:border-white/10 transition-colors"
-                  >
-                    <div className="flex items-center gap-4 min-w-0">
-                      <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-slate-800 border border-white/10 flex-shrink-0">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={item.previewUrl} alt="" className="w-full h-full object-cover" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold text-white truncate max-w-[200px]">{item.file.name}</p>
-                        <div className="flex items-center gap-2 text-xs">
-                          <span className="text-slate-500">{(item.file.size / 1024).toFixed(0)} KB</span>
-                          {item.status === 'done' && item.resultBlob && (
-                            <>
-                              <div className="w-1 h-1 rounded-full bg-slate-700" />
-                              <span className="text-green-400 font-bold">{(item.resultBlob.size / 1024).toFixed(0)} KB</span>
-                              <span className="text-[10px] bg-green-500/10 text-green-400 px-1.5 py-0.5 rounded font-black">
-                                -{Math.round((1 - (item.resultBlob.size / item.file.size)) * 100)}%
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-6">
-                      {item.status === 'processing' && (
-                        <div className="flex items-center gap-2 text-indigo-400">
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          <span className="text-[10px] font-black uppercase tracking-tighter">Processing</span>
-                        </div>
-                      )}
-                      
-                      {item.status === 'done' && (
-                        <div className="flex items-center gap-2 text-green-400">
-                          <CheckCircle className="w-4 h-4" />
-                          <span className="text-[10px] font-black uppercase tracking-tighter">Ready</span>
-                        </div>
-                      )}
-                      
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {item.status === 'done' && (
-                          <button onClick={() => downloadFile(item, index)} className="p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors">
-                            <Download className="w-5 h-5" />
-                          </button>
-                        )}
-                        <button onClick={() => removeFile(item.id)} className="p-2 hover:bg-red-500/10 rounded-lg text-slate-400 hover:text-red-400 transition-colors">
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {files.length === 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-white/5">
-            <div className="glass-card p-6 flex flex-col items-center text-center gap-4 group hover:border-indigo-500/30 transition-all duration-500">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center group-hover:bg-indigo-500/20 transition-colors">
-                <Zap className="w-6 h-6 text-indigo-400" />
-              </div>
-              <div>
-                <h3 className="text-white font-bold mb-2">Blazing Fast</h3>
-                <p className="text-slate-400 text-xs leading-relaxed">Local processing means instant results on your device.</p>
-              </div>
-            </div>
-
-            <div className="glass-card p-6 flex flex-col items-center text-center gap-4 group hover:border-indigo-500/30 transition-all duration-500">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center group-hover:bg-indigo-500/20 transition-colors">
-                <Shield className="w-6 h-6 text-indigo-400" />
-              </div>
-              <div>
-                <h3 className="text-white font-bold mb-2">100% Private</h3>
-                <p className="text-slate-400 text-xs leading-relaxed">Your files never leave your browser. Zero server uploads.</p>
-              </div>
-            </div>
-
-            <div className="glass-card p-6 flex flex-col items-center text-center gap-4 group hover:border-indigo-500/30 transition-all duration-500">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center group-hover:bg-indigo-500/20 transition-colors">
-                <Award className="w-6 h-6 text-indigo-400" />
-              </div>
-              <div>
-                <h3 className="text-white font-bold mb-2">High Quality</h3>
-                <p className="text-slate-400 text-xs leading-relaxed">Optimal visual fidelity with smart compression.</p>
-              </div>
-            </div>
-          </div>
-        )}
+                <div className="glass-card p-8 flex flex-col items-center text-center gap-5 border-white/5">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center">
+                    <Shield className="w-6 h-6 text-indigo-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold mb-2">100% Private</h3>
+                    <p className="text-slate-400 text-xs leading-relaxed">Secure processing. Files never leave your browser.</p>
+                  </div>
+                </div>
+                <div className="glass-card p-8 flex flex-col items-center text-center gap-5 border-white/5">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center">
+                    <Award className="w-6 h-6 text-indigo-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold mb-2">Pro Quality</h3>
+                    <p className="text-slate-400 text-xs leading-relaxed">Optimized compression for pixel-perfect results.</p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Right Column: Settings Sidebar */}
       <div className="lg:col-span-4 h-full flex flex-col min-h-0">
-        <aside className="glass-card p-8 border-white/10 shadow-2xl flex flex-col h-full min-h-0">
-          <div className="flex items-center gap-3 mb-8">
+        <aside className="glass-card p-8 border-white/10 shadow-2xl flex flex-col h-full min-h-0 overflow-hidden">
+          <div className="flex items-center gap-3 mb-8 flex-shrink-0">
             <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
               <Settings2 className="w-5 h-5 text-indigo-400" />
             </div>
-            <h3 className="text-xl font-bold text-white tracking-tight">Settings</h3>
+            <h3 className="text-xl font-bold text-white tracking-tight">Configuration</h3>
           </div>
 
           <div className="flex-1 overflow-y-auto pr-2 space-y-8 custom-scrollbar min-h-0">
@@ -544,7 +537,6 @@ export default function Converter() {
                 placeholder="e.g. image_{n}"
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-sm text-white outline-none focus:border-indigo-500 focus:bg-white/10 transition-all placeholder:text-slate-600"
               />
-              <p className="text-[10px] text-slate-500 italic">Use {'{n}'} for number. e.g. image_{'{n}'}</p>
             </div>
 
             {/* Toggles */}
@@ -565,7 +557,7 @@ export default function Converter() {
               <div className="flex items-center justify-between p-5 bg-white/5 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
                 <div className="space-y-1">
                   <h4 className="text-sm font-bold text-white">Folders</h4>
-                  <p className="text-[10px] text-slate-500">Keep directory structure</p>
+                  <p className="text-[10px] text-slate-500">Maintain directory</p>
                 </div>
                 <button 
                   onClick={() => setMaintainFolderStructure(!maintainFolderStructure)}
@@ -595,8 +587,8 @@ export default function Converter() {
                   }}
                 />
                 <div className="flex justify-between mt-3">
-                  <span className="text-[10px] text-slate-600 font-bold uppercase tracking-tighter">Small Size</span>
-                  <span className="text-[10px] text-slate-600 font-bold uppercase tracking-tighter">HD Quality</span>
+                  <span className="text-[10px] text-slate-600 font-bold uppercase tracking-tighter">Small</span>
+                  <span className="text-[10px] text-slate-600 font-bold uppercase tracking-tighter">HD</span>
                 </div>
               </div>
             </div>
