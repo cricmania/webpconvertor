@@ -359,15 +359,30 @@ export default function Converter() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="glass-card p-6 border-white/5 flex-1 min-h-[200px] flex flex-col"
+              className="glass-card p-6 border-white/5 flex-1 min-h-[200px] flex flex-col overflow-hidden"
             >
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-4 flex-shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
                   <span className="text-xs font-bold uppercase tracking-widest text-slate-400">
                     Queue ({files.length} images)
                   </span>
                 </div>
+                
+                {files.some(f => f.status === 'done') && (
+                  <div className="px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                    <span className="text-[10px] font-bold text-green-400 uppercase tracking-wider">
+                      Total Saved: {(() => {
+                        const original = files.filter(f => f.status === 'done').reduce((acc, f) => acc + f.file.size, 0);
+                        const result = files.filter(f => f.status === 'done').reduce((acc, f) => acc + (f.resultBlob?.size || 0), 0);
+                        const saved = original - result;
+                        return (saved / 1024 / 1024).toFixed(2) + ' MB';
+                      })()}
+                    </span>
+                  </div>
+                )}
+
                 <button 
                   onClick={clearAll}
                   className="text-xs font-bold text-slate-500 hover:text-red-400 transition-colors uppercase tracking-widest"
@@ -376,14 +391,31 @@ export default function Converter() {
                 </button>
               </div>
 
-              <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar">
+              {/* Global Progress Bar */}
+              {isConverting && (
+                <div className="mb-4 space-y-2">
+                  <div className="flex justify-between items-center text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
+                    <span>Converting Batch...</span>
+                    <span>{Math.round((files.filter(f => f.status === 'done').length / files.length) * 100)}%</span>
+                  </div>
+                  <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                    <motion.div 
+                      className="h-full bg-indigo-500"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${(files.filter(f => f.status === 'done').length / files.length) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2 overflow-y-auto pr-2 custom-scrollbar flex-1">
                 {files.map((item, index) => (
                   <motion.div 
                     layout
                     key={item.id}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 group hover:border-white/10 transition-colors"
+                    className="flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5 group hover:border-white/10 transition-colors"
                   >
                     <div className="flex items-center gap-4 min-w-0">
                       <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-slate-800 border border-white/10 flex-shrink-0">
@@ -391,8 +423,19 @@ export default function Converter() {
                         <img src={item.previewUrl} alt="" className="w-full h-full object-cover" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-bold text-white truncate">{item.file.name}</p>
-                        <p className="text-xs text-slate-500">{(item.file.size / 1024).toFixed(0)} KB • {item.file.type.split('/')[1].toUpperCase()}</p>
+                        <p className="text-sm font-bold text-white truncate max-w-[200px]">{item.file.name}</p>
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="text-slate-500">{(item.file.size / 1024).toFixed(0)} KB</span>
+                          {item.status === 'done' && item.resultBlob && (
+                            <>
+                              <div className="w-1 h-1 rounded-full bg-slate-700" />
+                              <span className="text-green-400 font-bold">{(item.resultBlob.size / 1024).toFixed(0)} KB</span>
+                              <span className="text-[10px] bg-green-500/10 text-green-400 px-1.5 py-0.5 rounded font-black">
+                                -{Math.round((1 - (item.resultBlob.size / item.file.size)) * 100)}%
+                              </span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -403,6 +446,7 @@ export default function Converter() {
                           <span className="text-[10px] font-black uppercase tracking-tighter">Processing</span>
                         </div>
                       )}
+                      
                       {item.status === 'done' && (
                         <div className="flex items-center gap-2 text-green-400">
                           <CheckCircle className="w-4 h-4" />
