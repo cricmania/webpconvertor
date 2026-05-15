@@ -23,6 +23,7 @@ export default function Converter() {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
+  const [seoFriendly, setSeoFriendly] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getNewName = useCallback((file: FileItem, index: number) => {
@@ -30,8 +31,17 @@ export default function Converter() {
     if (renamePattern.trim()) {
       baseName = renamePattern.replace(/{n}/g, (index + 1).toString());
     }
+
+    if (seoFriendly) {
+      baseName = baseName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+    }
+    
     return `${baseName}.${outputFormat === 'jpeg' ? 'jpg' : outputFormat}`;
-  }, [renamePattern, outputFormat]);
+  }, [renamePattern, outputFormat, seoFriendly]);
 
   const addFiles = useCallback((newFiles: File[]) => {
     const validFiles = newFiles.filter(f => f.type.startsWith('image/jpeg') || f.type.startsWith('image/png'));
@@ -398,6 +408,20 @@ export default function Converter() {
               className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-200 outline-none focus:border-indigo-500 transition-colors placeholder:text-slate-600 disabled:opacity-50"
             />
             <p className="text-[10px] text-slate-500 mt-2">Use {'{n}'} for sequence number. Leave empty to keep original names.</p>
+          </div>
+
+          {/* SEO Friendly Toggle */}
+          <div className="flex items-center justify-between p-4 bg-slate-900/50 rounded-xl border border-slate-700">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-bold uppercase tracking-widest text-slate-400">SEO Friendly</label>
+              <p className="text-[10px] text-slate-500">Lowercase & hyphenated names</p>
+            </div>
+            <button 
+              onClick={() => setSeoFriendly(!seoFriendly)}
+              className={`w-12 h-6 rounded-full transition-colors relative ${seoFriendly ? 'bg-indigo-600' : 'bg-slate-700'}`}
+            >
+              <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${seoFriendly ? 'left-7' : 'left-1'}`} />
+            </button>
           </div>
 
           {/* Quality Slider */}
