@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Upload, FileImage, CheckCircle, Download, Trash2, Settings2, Image as ImageIcon, Loader2, PackageOpen, GripVertical, X, Columns } from 'lucide-react';
+import { Upload, FileImage, CheckCircle, Download, Trash2, Settings2, Image as ImageIcon, Loader2, PackageOpen, GripVertical, X, Columns2 } from 'lucide-react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
@@ -105,14 +105,14 @@ export default function Converter() {
       const droppedFiles: File[] = [];
       const droppedPaths: string[] = [];
 
-      const traverseFileTree = async (item: FileSystemEntry, path: string = "") => {
+      const traverseFileTree = async (item: any, path: string = "") => {
         if (item.isFile) {
-          const file = await new Promise<File>((resolve) => (item as FileSystemFileEntry).file(resolve));
+          const file = await new Promise<File>((resolve) => (item as any).file(resolve));
           droppedFiles.push(file);
           droppedPaths.push(path + item.name);
         } else if (item.isDirectory) {
-          const dirReader = (item as FileSystemDirectoryEntry).createReader();
-          const entries = await new Promise<FileSystemEntry[]>((resolve) => dirReader.readEntries(resolve));
+          const dirReader = (item as any).createReader();
+          const entries = await new Promise<any[]>((resolve) => dirReader.readEntries(resolve));
           for (const entry of entries) {
             await traverseFileTree(entry, path + item.name + "/");
           }
@@ -120,7 +120,7 @@ export default function Converter() {
       };
 
       for (const item of items) {
-        const entry = item.webkitGetAsEntry();
+        const entry = (item as any).webkitGetAsEntry();
         if (entry) await traverseFileTree(entry);
       }
 
@@ -452,7 +452,7 @@ export default function Converter() {
                             className="text-slate-400 hover:text-indigo-400 transition-colors p-1"
                             title="Compare Quality"
                           >
-                            <Columns className="w-5 h-5" />
+                            <Columns2 className="w-5 h-5" />
                           </button>
                         )}
                         <button 
