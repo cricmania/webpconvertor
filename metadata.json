@@ -1,0 +1,6 @@
+{
+  "name": "WebP Converter",
+  "description": "A fast, privacy-first web application to bulk convert PNG and JPG files to WebP locally in your browser.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
