@@ -309,7 +309,8 @@ export default function Converter() {
             />
           </div>
         </div>
-      )}
+      </div>
+    )}
 
       <div className="flex flex-col md:flex-row gap-6">
         {/* Left Side: Dropzone & File List */}
