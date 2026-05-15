@@ -592,4 +592,3 @@ export default function Converter() {
     </div>
   );
 }
-}
