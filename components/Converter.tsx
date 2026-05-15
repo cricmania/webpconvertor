@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
-import { Upload, FileImage, CheckCircle, Download, Trash2, Settings2, Image as ImageIcon, Loader2, PackageOpen, GripVertical } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { Upload, FileImage, CheckCircle, Download, Trash2, Settings2, Image as ImageIcon, Loader2, PackageOpen, GripVertical, X, Columns } from 'lucide-react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
@@ -13,6 +13,7 @@ interface FileItem {
   progress: number;
   resultBlob?: Blob;
   resultUrl?: string;
+  relativePath?: string;
 }
 
 export default function Converter() {
@@ -24,7 +25,34 @@ export default function Converter() {
   const [isDragging, setIsDragging] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
   const [seoFriendly, setSeoFriendly] = useState(true);
+  const [maintainFolderStructure, setMaintainFolderStructure] = useState(true);
+  const [previewingItem, setPreviewingItem] = useState<FileItem | null>(null);
+  const [comparisonSliderPos, setComparisonSliderPos] = useState(50);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load preferences
+  useEffect(() => {
+    const savedQuality = localStorage.getItem('webp-conv-quality');
+    const savedFormat = localStorage.getItem('webp-conv-format');
+    const savedPattern = localStorage.getItem('webp-conv-pattern');
+    const savedSeo = localStorage.getItem('webp-conv-seo');
+    const savedFolder = localStorage.getItem('webp-conv-folder');
+
+    if (savedQuality) setQuality(parseInt(savedQuality));
+    if (savedFormat) setOutputFormat(savedFormat as any);
+    if (savedPattern) setRenamePattern(savedPattern);
+    if (savedSeo) setSeoFriendly(savedSeo === 'true');
+    if (savedFolder) setMaintainFolderStructure(savedFolder === 'true');
+  }, []);
+
+  // Save preferences
+  useEffect(() => {
+    localStorage.setItem('webp-conv-quality', quality.toString());
+    localStorage.setItem('webp-conv-format', outputFormat);
+    localStorage.setItem('webp-conv-pattern', renamePattern);
+    localStorage.setItem('webp-conv-seo', seoFriendly.toString());
+    localStorage.setItem('webp-conv-folder', maintainFolderStructure.toString());
+  }, [quality, outputFormat, renamePattern, seoFriendly, maintainFolderStructure]);
 
   const getNewName = useCallback((file: FileItem, index: number) => {
     let baseName = file.file.name.replace(/\.[^/.]+$/, "");
@@ -43,15 +71,16 @@ export default function Converter() {
     return `${baseName}.${outputFormat === 'jpeg' ? 'jpg' : outputFormat}`;
   }, [renamePattern, outputFormat, seoFriendly]);
 
-  const addFiles = useCallback((newFiles: File[]) => {
+  const addFiles = useCallback((newFiles: File[], paths?: string[]) => {
     const validFiles = newFiles.filter(f => f.type.startsWith('image/jpeg') || f.type.startsWith('image/png'));
     
-    const newItems = validFiles.map(file => ({
+    const newItems = validFiles.map((file, idx) => ({
       id: Math.random().toString(36).substring(7),
       file,
       previewUrl: URL.createObjectURL(file),
       status: 'pending' as const,
       progress: 0,
+      relativePath: paths?.[idx] || (file as any).webkitRelativePath || '',
     }));
 
     setFiles(prev => [...prev, ...newItems]);
@@ -67,11 +96,36 @@ export default function Converter() {
     setIsDragging(false);
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+    if (e.dataTransfer.items) {
+      const items = Array.from(e.dataTransfer.items);
+      const droppedFiles: File[] = [];
+      const droppedPaths: string[] = [];
+
+      const traverseFileTree = async (item: FileSystemEntry, path: string = "") => {
+        if (item.isFile) {
+          const file = await new Promise<File>((resolve) => (item as FileSystemFileEntry).file(resolve));
+          droppedFiles.push(file);
+          droppedPaths.push(path + item.name);
+        } else if (item.isDirectory) {
+          const dirReader = (item as FileSystemDirectoryEntry).createReader();
+          const entries = await new Promise<FileSystemEntry[]>((resolve) => dirReader.readEntries(resolve));
+          for (const entry of entries) {
+            await traverseFileTree(entry, path + item.name + "/");
+          }
+        }
+      };
+
+      for (const item of items) {
+        const entry = item.webkitGetAsEntry();
+        if (entry) await traverseFileTree(entry);
+      }
+
+      addFiles(droppedFiles, droppedPaths);
+    } else if (e.dataTransfer.files) {
       addFiles(Array.from(e.dataTransfer.files));
     }
   }, [addFiles]);
@@ -192,7 +246,10 @@ export default function Converter() {
     files.forEach((item, index) => {
       if (item.status === 'done' && item.resultBlob) {
         const newName = getNewName(item, index);
-        zip.file(newName, item.resultBlob);
+        const path = (maintainFolderStructure && item.relativePath) 
+          ? item.relativePath.split('/').slice(0, -1).join('/') + '/' + newName
+          : newName;
+        zip.file(path, item.resultBlob);
       }
     });
 
@@ -208,7 +265,39 @@ export default function Converter() {
     <div className="max-w-6xl w-full mx-auto flex flex-col gap-6">
       {/* Global Progress Bar */}
       {files.length > 0 && (
-        <div className="bg-slate-800/40 rounded-2xl p-4 border border-slate-700 shadow-lg mt-2">
+        <div className="flex flex-col gap-4">
+          {/* Savings Summary */}
+          {files.every(f => f.status === 'done' || f.status === 'error') && files.some(f => f.status === 'done') && (
+            <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-indigo-500 rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                  <CheckCircle className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-white font-bold text-lg">Conversion Complete!</h4>
+                  <p className="text-slate-400 text-sm">All files have been optimized successfully.</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-6 bg-slate-900/50 px-6 py-3 rounded-2xl border border-slate-700/50">
+                <div className="text-center">
+                  <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Total Saved</p>
+                  <p className="text-indigo-400 font-mono text-xl font-bold">
+                    {(files.reduce((acc, f) => acc + (f.status === 'done' ? f.file.size - f.resultBlob!.size : 0), 0) / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+                <div className="w-px h-10 bg-slate-700" />
+                <div className="text-center">
+                  <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Reduction</p>
+                  <p className="text-green-400 font-mono text-xl font-bold">
+                    {( (files.reduce((acc, f) => acc + (f.status === 'done' ? f.file.size - f.resultBlob!.size : 0), 0) / 
+                       files.reduce((acc, f) => acc + (f.status === 'done' ? f.file.size : 0), 0)) * 100).toFixed(0)}%
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+        <div className="bg-slate-800/40 rounded-2xl p-4 border border-slate-700 shadow-lg">
           <div className="flex justify-between items-center mb-2">
             <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Total Progress</span>
             <span className="text-indigo-400 font-mono text-sm">{Math.round(globalProgress)}%</span>
@@ -356,14 +445,25 @@ export default function Converter() {
                         <Download className="w-5 h-5" />
                       </button>
                     ) : (
-                      <button 
-                        onClick={() => removeFile(item.id)}
-                        disabled={isConverting}
-                        className="text-slate-400 hover:text-red-400 transition-colors disabled:opacity-50 p-1"
-                        title="Remove"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                      <div className="flex gap-1">
+                        {item.status === 'done' && (
+                          <button 
+                            onClick={() => setPreviewingItem(item)}
+                            className="text-slate-400 hover:text-indigo-400 transition-colors p-1"
+                            title="Compare Quality"
+                          >
+                            <Columns className="w-5 h-5" />
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => removeFile(item.id)}
+                          disabled={isConverting}
+                          className="text-slate-400 hover:text-red-400 transition-colors disabled:opacity-50 p-1"
+                          title="Remove"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -410,18 +510,33 @@ export default function Converter() {
             <p className="text-[10px] text-slate-500 mt-2">Use {'{n}'} for sequence number. Leave empty to keep original names.</p>
           </div>
 
-          {/* SEO Friendly Toggle */}
-          <div className="flex items-center justify-between p-4 bg-slate-900/50 rounded-xl border border-slate-700">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-bold uppercase tracking-widest text-slate-400">SEO Friendly</label>
-              <p className="text-[10px] text-slate-500">Lowercase & hyphenated names</p>
+          {/* Toggles */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between p-4 bg-slate-900/50 rounded-xl border border-slate-700">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold uppercase tracking-widest text-slate-400">SEO Friendly</label>
+                <p className="text-[10px] text-slate-500">Lowercase & hyphenated names</p>
+              </div>
+              <button 
+                onClick={() => setSeoFriendly(!seoFriendly)}
+                className={`w-12 h-6 rounded-full transition-colors relative ${seoFriendly ? 'bg-indigo-600' : 'bg-slate-700'}`}
+              >
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${seoFriendly ? 'left-7' : 'left-1'}`} />
+              </button>
             </div>
-            <button 
-              onClick={() => setSeoFriendly(!seoFriendly)}
-              className={`w-12 h-6 rounded-full transition-colors relative ${seoFriendly ? 'bg-indigo-600' : 'bg-slate-700'}`}
-            >
-              <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${seoFriendly ? 'left-7' : 'left-1'}`} />
-            </button>
+
+            <div className="flex items-center justify-between p-4 bg-slate-900/50 rounded-xl border border-slate-700">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Maintain folders</label>
+                <p className="text-[10px] text-slate-500">Keep directory structure in zip</p>
+              </div>
+              <button 
+                onClick={() => setMaintainFolderStructure(!maintainFolderStructure)}
+                className={`w-12 h-6 rounded-full transition-colors relative ${maintainFolderStructure ? 'bg-indigo-600' : 'bg-slate-700'}`}
+              >
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${maintainFolderStructure ? 'left-7' : 'left-1'}`} />
+              </button>
+            </div>
           </div>
 
           {/* Quality Slider */}
@@ -486,6 +601,105 @@ export default function Converter() {
         </div>
       </aside>
       </div>
+
+      {/* Comparison Modal */}
+      {previewingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="relative w-full max-w-5xl bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col h-full max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-slate-800">
+              <div>
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                  Quality Comparison
+                  <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 text-[10px] font-black rounded uppercase tracking-wider border border-indigo-500/20">
+                    {outputFormat}
+                  </span>
+                </h3>
+                <p className="text-slate-500 text-xs mt-1 truncate max-w-md">{previewingItem.file.name}</p>
+              </div>
+              <button 
+                onClick={() => setPreviewingItem(null)}
+                className="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-all"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-hidden p-6 flex flex-col gap-6">
+              <div className="flex-1 relative rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 group cursor-col-resize select-none">
+                {/* Background (Optimized) */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img 
+                  src={previewingItem.resultUrl} 
+                  alt="Optimized" 
+                  className="absolute inset-0 w-full h-full object-contain"
+                />
+                
+                {/* Foreground (Original) with Clip Path */}
+                <div 
+                  className="absolute inset-0 overflow-hidden"
+                  style={{ clipPath: `inset(0 ${100 - comparisonSliderPos}% 0 0)` }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img 
+                    src={previewingItem.previewUrl} 
+                    alt="Original" 
+                    className="absolute inset-0 w-full h-full object-contain"
+                  />
+                </div>
+
+                {/* Labels */}
+                <div className="absolute top-4 left-4 px-3 py-1.5 bg-black/60 backdrop-blur-md rounded-full text-[10px] font-black text-white uppercase tracking-widest pointer-events-none">Original</div>
+                <div className="absolute top-4 right-4 px-3 py-1.5 bg-indigo-600/80 backdrop-blur-md rounded-full text-[10px] font-black text-white uppercase tracking-widest pointer-events-none">Optimized</div>
+
+                {/* Slider Handle */}
+                <div 
+                  className="absolute top-0 bottom-0 w-1 bg-white shadow-[0_0_15px_rgba(255,255,255,0.5)] z-10"
+                  style={{ left: `${comparisonSliderPos}%` }}
+                >
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-2xl text-slate-900 border-4 border-slate-900">
+                    <GripVertical className="w-5 h-5 rotate-90" />
+                  </div>
+                </div>
+
+                {/* Invisible Input Slider */}
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="100" 
+                  value={comparisonSliderPos}
+                  onChange={(e) => setComparisonSliderPos(parseInt(e.target.value))}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-col-resize z-20"
+                />
+              </div>
+
+              {/* Stats Footer */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-800">
+                  <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Original Size</p>
+                  <p className="text-white font-mono font-bold">{(previewingItem.file.size / 1024 / 1024).toFixed(2)} MB</p>
+                </div>
+                <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-800">
+                  <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Result Size</p>
+                  <p className="text-indigo-400 font-mono font-bold">{(previewingItem.resultBlob!.size / 1024 / 1024).toFixed(2)} MB</p>
+                </div>
+                <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-800">
+                  <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Reduction</p>
+                  <p className="text-green-400 font-mono font-bold">{((1 - (previewingItem.resultBlob!.size / previewingItem.file.size)) * 100).toFixed(1)}%</p>
+                </div>
+                <button 
+                  onClick={() => downloadFile(previewingItem, files.indexOf(previewingItem))}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl flex items-center justify-center gap-2 font-bold transition-all shadow-lg shadow-indigo-500/20"
+                >
+                  <Download className="w-5 h-5" />
+                  Download
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
